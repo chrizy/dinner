@@ -7,6 +7,7 @@ export interface Meal {
   shopping_list: string | null;
   photo_key: string | null;
   created_at: string;
+  deleted: number;
 }
 
 export interface Dinner {

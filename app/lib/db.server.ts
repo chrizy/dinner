@@ -6,7 +6,7 @@ export function getDb(env: { DB: D1Database }) {
 
 export async function getMeals(db: D1Database): Promise<Meal[]> {
   const stmt = db.prepare(
-    "SELECT id, name, description, shopping_list, photo_key, created_at FROM meals ORDER BY name ASC"
+    "SELECT id, name, description, shopping_list, photo_key, created_at, deleted FROM meals ORDER BY deleted ASC, name ASC"
   );
   const { results } = await stmt.all<Meal>();
   return results ?? [];
@@ -17,10 +17,26 @@ export async function getMealById(
   id: number
 ): Promise<Meal | null> {
   const stmt = db.prepare(
-    "SELECT id, name, description, shopping_list, photo_key, created_at FROM meals WHERE id = ?"
+    "SELECT id, name, description, shopping_list, photo_key, created_at, deleted FROM meals WHERE id = ?"
   );
   const row = await stmt.bind(id).first<Meal>();
   return row ?? null;
+}
+
+export async function isMealUsed(db: D1Database, mealId: number): Promise<boolean> {
+  const row = await db
+    .prepare("SELECT 1 FROM dinners WHERE meal_id = ? LIMIT 1")
+    .bind(mealId)
+    .first<{ "1": number }>();
+  return !!row;
+}
+
+export async function archiveMeal(db: D1Database, id: number): Promise<void> {
+  await db.prepare("UPDATE meals SET deleted = 1 WHERE id = ?").bind(id).run();
+}
+
+export async function restoreMeal(db: D1Database, id: number): Promise<void> {
+  await db.prepare("UPDATE meals SET deleted = 0 WHERE id = ?").bind(id).run();
 }
 
 export async function createMeal(
@@ -32,7 +48,7 @@ export async function createMeal(
 ): Promise<Meal> {
   const result = await db
     .prepare(
-      "INSERT INTO meals (name, photo_key, description, shopping_list) VALUES (?, ?, ?, ?) RETURNING id, name, description, shopping_list, photo_key, created_at"
+      "INSERT INTO meals (name, photo_key, description, shopping_list, deleted) VALUES (?, ?, ?, ?, 0) RETURNING id, name, description, shopping_list, photo_key, created_at, deleted"
     )
     .bind(name, photoKey, description, shoppingList)
     .first<Meal>();
@@ -93,7 +109,7 @@ export async function getDinnersWithDetails(
   if (dates.length === 0) return [];
   const placeholders = dates.map(() => "?").join(",");
   const dinnersStmt = db.prepare(
-    `SELECT d.id, d.date, d.meal_id, d.created_at, m.id as meal_id_ref, m.name as meal_name, m.description as meal_description, m.shopping_list as meal_shopping_list, m.photo_key as meal_photo_key, m.created_at as meal_created_at
+    `SELECT d.id, d.date, d.meal_id, d.created_at, m.id as meal_id_ref, m.name as meal_name, m.description as meal_description, m.shopping_list as meal_shopping_list, m.photo_key as meal_photo_key, m.created_at as meal_created_at, m.deleted as meal_deleted
      FROM dinners d
      LEFT JOIN meals m ON d.meal_id = m.id
      WHERE d.date IN (${placeholders})
@@ -110,6 +126,7 @@ export async function getDinnersWithDetails(
     meal_shopping_list: string | null;
     meal_photo_key: string | null;
     meal_created_at: string | null;
+    meal_deleted: number | null;
   }>();
   const dinners = dinnersResult.results ?? [];
 
@@ -141,6 +158,7 @@ export async function getDinnersWithDetails(
           shopping_list: d.meal_shopping_list ?? null,
           photo_key: d.meal_photo_key,
           created_at: d.meal_created_at!,
+          deleted: d.meal_deleted ?? 0,
         }
       : null,
     attendance: attendanceByDinner.get(d.id) ?? [],

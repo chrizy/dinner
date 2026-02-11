@@ -1,17 +1,38 @@
 @import "tailwindcss" source(".");
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-html,
-body {
-  @apply bg-white dark:bg-gray-950;
+html {
+  color-scheme: dark;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-  }
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+  min-height: 100vh;
+}
+
+/* Bold modern card surfaces */
+.card-surface {
+  @apply rounded-2xl border border-slate-700/50 bg-slate-900/80 shadow-xl shadow-black/20;
+}
+
+.card-surface-accent {
+  @apply rounded-2xl border border-amber-500/30 bg-slate-800/90 shadow-xl shadow-amber-500/5;
+}
+
+.btn-pill {
+  @apply rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200;
+}
+
+.btn-pill-primary {
+  @apply btn-pill bg-amber-500 text-slate-950 hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-950;
+}
+
+.btn-pill-secondary {
+  @apply btn-pill bg-slate-700 text-slate-100 hover:bg-slate-600 border border-slate-600;
 }
 
 @keyframes toast-in {

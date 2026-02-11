@@ -128,7 +128,7 @@ const KID_MESSAGES: Record<string, string[]> = {
     "Take away time.",
     "Who's burning dinner then?",
     "RIP dinner plans.",
-    "Cereal for tea?",
+    "Cereal for dinner?",
   ],
 };
 
@@ -194,37 +194,37 @@ export default function UpcomingDinners({ loaderData }: Route.ComponentProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-xl font-semibold text-amber-900 dark:text-amber-100">
+        <h2 className="text-2xl font-bold text-white tracking-tight">
           Upcoming Dinners
         </h2>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={prevWeek}
-            className="px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-stone-800 text-sm"
+            className="rounded-full px-4 py-2 text-sm font-semibold bg-slate-700 text-slate-200 hover:bg-slate-600 border border-slate-600 transition-colors"
           >
             Previous week
           </button>
           <button
             type="button"
             onClick={thisWeek}
-            className="px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-stone-800 text-sm"
+            className="rounded-full px-4 py-2 text-sm font-semibold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors"
           >
             This week
           </button>
           <button
             type="button"
             onClick={nextWeek}
-            className="px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-stone-800 text-sm"
+            className="rounded-full px-4 py-2 text-sm font-semibold bg-slate-700 text-slate-200 hover:bg-slate-600 border border-slate-600 transition-colors"
           >
             Next week
           </button>
         </div>
       </div>
-      <p className="text-stone-600 dark:text-stone-400 text-sm">
+      <p className="text-slate-400 text-sm font-medium">
         Week of {weekLabel}
         {" · "}
-        <a href="/meals" className="text-amber-700 dark:text-amber-300 hover:underline">
+        <a href="/meals" className="text-amber-400 hover:text-amber-300 font-semibold transition-colors">
           Add meal to list
         </a>
       </p>
@@ -232,7 +232,7 @@ export default function UpcomingDinners({ loaderData }: Route.ComponentProps) {
       {toast && (
         <div
           key={toast.id}
-          className="fixed bottom-8 left-1/2 z-20 -translate-x-1/2 min-w-[280px] max-w-[90vw] px-6 py-4 rounded-2xl bg-amber-900 dark:bg-amber-950 text-amber-50 text-center text-base font-medium shadow-xl ring-2 ring-amber-500/50 animate-toast-in"
+          className="fixed bottom-8 left-1/2 z-20 -translate-x-1/2 min-w-[300px] max-w-[90vw] px-8 py-5 rounded-2xl bg-slate-800 border border-amber-500/40 text-white text-center text-base font-semibold shadow-2xl shadow-black/40 ring-2 ring-amber-500/30 animate-toast-in"
           role="status"
           aria-live="polite"
         >
@@ -272,36 +272,37 @@ function DayCard({
 
   return (
     <div
-      className={`p-4 rounded-xl border bg-white dark:bg-stone-900 ${
-        isToday
-          ? "border-amber-500 ring-1 ring-amber-500/30"
-          : "border-amber-200 dark:border-amber-800"
-      }`}
+      className={`p-5 rounded-2xl border shadow-lg transition-shadow ${isToday
+          ? "border-amber-500/50 bg-slate-800/90 shadow-amber-500/10 ring-2 ring-amber-500/30"
+          : "border-slate-700/50 bg-slate-900/80 shadow-black/20"
+        }`}
     >
-      <div className="flex items-baseline justify-between mb-2">
-        <div className="font-medium text-stone-900 dark:text-stone-100">
+      <div className="flex items-baseline justify-between mb-3">
+        <div className="font-bold text-white text-sm uppercase tracking-wide">
           {dateLabel}
         </div>
         {isToday && (
-          <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500 text-white">
+          <span className="ml-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500 text-slate-950">
             Today
           </span>
         )}
       </div>
-      <div className="mb-3">
-        <Form method="post" className="flex gap-1 flex-wrap">
+      <div className="mb-4 w-full min-w-0">
+        <Form method="post" className="block w-full">
           <input type="hidden" name="intent" value="setMeal" />
           <input type="hidden" name="date" value={dinner.date} />
           <select
             name="meal_id"
             defaultValue={dinner.meal_id ?? "none"}
             onChange={(e) => e.currentTarget.form?.requestSubmit()}
-            className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 text-sm"
+            className="w-full min-w-0 px-3 py-2 rounded-xl border border-slate-600 bg-slate-800 text-slate-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 appearance-none bg-[length:1rem_1rem] bg-[right_0.5rem_center] bg-no-repeat pr-9"
+            style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")" }}
           >
             <option value="none">No plan</option>
             {meals.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
+                {m.deleted ? " (archived)" : ""}
               </option>
             ))}
           </select>
@@ -342,11 +343,10 @@ function AttendeeChip({
       <button
         type="submit"
         disabled={fetcher.state !== "idle"}
-        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
-          attending
-            ? "bg-amber-200 text-amber-900 dark:bg-amber-800 dark:text-amber-100 hover:opacity-90 animate-attendee-in"
-            : "bg-stone-100 text-stone-500 dark:bg-stone-700 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-600"
-        }`}
+        className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${attending
+            ? "bg-amber-500 text-slate-950 hover:bg-amber-400 animate-attendee-in"
+            : "bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-slate-300 border border-slate-600"
+          }`}
       >
         {member} {attending ? "✓" : "+"}
       </button>

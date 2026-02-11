@@ -9,8 +9,8 @@ declare module "react-router" {
   }
 }
 
-/** Require Accept-Language to include en-GB; otherwise return 406 and no UI. */
-function acceptsEnGB(request: Request): boolean {
+/** Require Accept-Language to include en or en-GB; otherwise return 406 and no UI. */
+function acceptsEnglish(request: Request): boolean {
   const raw = request.headers.get("Accept-Language");
   if (!raw) return false;
   const parts = raw.split(",").map((p) => p.split(";")[0].trim().toLowerCase());
@@ -24,7 +24,7 @@ const requestHandler = createRequestHandler(
 
 export default {
   async fetch(request, env, ctx) {
-    if (!acceptsEnGB(request)) {
+    if (!acceptsEnglish(request)) {
       return new Response("Not accepted", {
         status: 406,
         headers: { "Content-Type": "text/plain; charset=utf-8" },

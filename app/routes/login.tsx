@@ -23,7 +23,18 @@ export async function action({ request, context }: Route.ActionArgs) {
   const formData = await request.formData();
   const pin = formData.get("pin");
   const pinStr = typeof pin === "string" ? pin.trim() : "";
-  const expectedPin = String(env.PIN ?? "").trim();
+  // Cloudflare secrets (wrangler secret put PIN) are available as env.PIN; trim in case of newline
+  const rawPin = env.PIN;
+  const expectedPin =
+    typeof rawPin === "string" ? rawPin.trim() : String(rawPin ?? "").trim();
+
+  if (expectedPin === "") {
+    return {
+      error:
+        "PIN not configured. In the project directory run: npx wrangler secret put PIN",
+      status: 500,
+    };
+  }
   if (pinStr !== expectedPin) {
     return { error: "Wrong PIN", status: 401 };
   }

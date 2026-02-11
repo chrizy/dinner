@@ -7,9 +7,9 @@
 	"name": "dinner",
 	"compatibility_date": "2025-04-04",
 	"main": "./workers/app.ts",
-	"vars": {
-		"PIN": "101010"
-	},
+	// Do NOT put PIN here. Set it as a secret for production:
+	//   wrangler secret put PIN
+	// For local dev, use .dev.vars with: PIN=your-pin
 	"observability": {
 		"enabled": true
 	},

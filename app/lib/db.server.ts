@@ -109,7 +109,7 @@ export async function getDinnersWithDetails(
   if (dates.length === 0) return [];
   const placeholders = dates.map(() => "?").join(",");
   const dinnersStmt = db.prepare(
-    `SELECT d.id, d.date, d.meal_id, d.created_at, m.id as meal_id_ref, m.name as meal_name, m.description as meal_description, m.shopping_list as meal_shopping_list, m.photo_key as meal_photo_key, m.created_at as meal_created_at, m.deleted as meal_deleted
+    `SELECT d.id, d.date, d.meal_id, d.created_at, d.notes, d.extra_guests, m.id as meal_id_ref, m.name as meal_name, m.description as meal_description, m.shopping_list as meal_shopping_list, m.photo_key as meal_photo_key, m.created_at as meal_created_at, m.deleted as meal_deleted
      FROM dinners d
      LEFT JOIN meals m ON d.meal_id = m.id
      WHERE d.date IN (${placeholders})
@@ -120,6 +120,8 @@ export async function getDinnersWithDetails(
     date: string;
     meal_id: number | null;
     created_at: string;
+    notes: string | null;
+    extra_guests: number | null;
     meal_id_ref: number | null;
     meal_name: string | null;
     meal_description: string | null;
@@ -150,6 +152,8 @@ export async function getDinnersWithDetails(
     date: d.date,
     meal_id: d.meal_id,
     created_at: d.created_at,
+    notes: d.notes ?? null,
+    extra_guests: d.extra_guests ?? 0,
     meal: d.meal_id_ref
       ? {
           id: d.meal_id_ref,
@@ -174,6 +178,30 @@ export async function setDinnerMeal(
   await db
     .prepare("UPDATE dinners SET meal_id = ? WHERE id = ?")
     .bind(mealId, id)
+    .run();
+}
+
+export async function setDinnerNotes(
+  db: D1Database,
+  dinnerId: number,
+  notes: string | null
+): Promise<void> {
+  const value = (notes ?? "").trim() || null;
+  await db
+    .prepare("UPDATE dinners SET notes = ? WHERE id = ?")
+    .bind(value, dinnerId)
+    .run();
+}
+
+export async function setDinnerExtraGuests(
+  db: D1Database,
+  dinnerId: number,
+  extraGuests: number
+): Promise<void> {
+  const n = Math.max(0, Math.min(99, extraGuests));
+  await db
+    .prepare("UPDATE dinners SET extra_guests = ? WHERE id = ?")
+    .bind(n, dinnerId)
     .run();
 }
 

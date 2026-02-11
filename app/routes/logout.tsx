@@ -19,8 +19,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (token) {
     await destroySession(env.DB, token);
   }
+  const secure = new URL(request.url).protocol === "https:";
   const headers = new Headers();
-  headers.append("Set-Cookie", sessionCookieHeader("", "", "clear"));
+  headers.append("Set-Cookie", sessionCookieHeader("", "", "clear", { secure }));
   throw redirect("/login", { headers });
 }
 

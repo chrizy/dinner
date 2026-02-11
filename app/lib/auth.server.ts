@@ -47,7 +47,8 @@ export async function destroySession(
 export function sessionCookieHeader(
   token: string,
   expiresAt: string,
-  mode: "set" | "clear"
+  mode: "set" | "clear",
+  options?: { secure?: boolean }
 ): string {
   const maxAge = mode === "set" ? SESSION_MAX_AGE : 0;
   const value = mode === "set" ? token : "";
@@ -58,6 +59,9 @@ export function sessionCookieHeader(
     "SameSite=Lax",
     `Max-Age=${maxAge}`,
   ];
+  if (options?.secure) {
+    parts.push("Secure");
+  }
   if (mode === "set") {
     parts.push(`Expires=${new Date(expiresAt).toUTCString()}`);
   } else {

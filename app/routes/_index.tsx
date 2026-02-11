@@ -8,6 +8,8 @@ import {
   ensureDinner,
   setDinnerMeal,
   setAttendance,
+  setDinnerNotes,
+  setDinnerExtraGuests,
 } from "~/lib/db.server";
 import type { Dinner, Meal, Member } from "~/lib/types";
 import { MEMBERS } from "~/lib/types";
@@ -94,6 +96,25 @@ export async function action({ request, context }: Route.ActionArgs) {
     return { ok: true, member: member as Member, attending };
   }
 
+  if (intent === "setNotes") {
+    const dinnerIdRaw = formData.get("dinner_id");
+    const notes = formData.get("notes");
+    const dinnerId = dinnerIdRaw ? Number.parseInt(String(dinnerIdRaw), 10) : Number.NaN;
+    if (Number.isNaN(dinnerId)) return { error: "Invalid dinner" };
+    await setDinnerNotes(db, dinnerId, typeof notes === "string" ? notes.trim() || null : null);
+    return { ok: true };
+  }
+
+  if (intent === "setExtraGuests") {
+    const dinnerIdRaw = formData.get("dinner_id");
+    const extraRaw = formData.get("extra_guests");
+    const dinnerId = dinnerIdRaw ? Number.parseInt(String(dinnerIdRaw), 10) : Number.NaN;
+    const extra = extraRaw ? Number.parseInt(String(extraRaw), 10) : 0;
+    if (Number.isNaN(dinnerId)) return { error: "Invalid dinner" };
+    await setDinnerExtraGuests(db, dinnerId, Number.isNaN(extra) ? 0 : extra);
+    return { ok: true };
+  }
+
   return { error: "Unknown action" };
 }
 
@@ -144,6 +165,7 @@ export default function UpcomingDinners({ loaderData }: Route.ComponentProps) {
   const [toast, setToast] = useState<{ message: string; id: number } | null>(null);
   const toastIdRef = useRef(0);
   const attendanceFetcher = useFetcher<typeof action>();
+  const notesFetcher = useFetcher<typeof action>();
 
   useEffect(() => {
     const d = attendanceFetcher.data as
@@ -221,13 +243,7 @@ export default function UpcomingDinners({ loaderData }: Route.ComponentProps) {
           </button>
         </div>
       </div>
-      <p className="text-slate-400 text-sm font-medium">
-        Week of {weekLabel}
-        {" · "}
-        <a href="/meals" className="text-amber-400 hover:text-amber-300 font-semibold transition-colors">
-          Add meal to list
-        </a>
-      </p>
+
 
       {toast && (
         <div
@@ -247,6 +263,7 @@ export default function UpcomingDinners({ loaderData }: Route.ComponentProps) {
             dinner={dinner}
             meals={meals}
             attendanceFetcher={attendanceFetcher}
+            notesFetcher={notesFetcher}
           />
         ))}
       </div>
@@ -258,28 +275,34 @@ function DayCard({
   dinner,
   meals,
   attendanceFetcher,
+  notesFetcher,
 }: {
   dinner: Dinner;
   meals: Meal[];
   attendanceFetcher: ReturnType<typeof useFetcher<typeof action>>;
+  notesFetcher: ReturnType<typeof useFetcher<typeof action>>;
 }) {
+  const [showNote, setShowNote] = useState(false);
   const dateLabel = new Date(dinner.date + "T12:00:00").toLocaleDateString(
     "en-GB",
     { weekday: "short", day: "numeric", month: "short" }
   );
   const isToday =
     dinner.date === new Date().toISOString().slice(0, 10);
+  const isXmas = dinner.date.endsWith("-12-25");
+  const hasNote = (dinner.notes ?? "").trim().length > 0;
 
   return (
     <div
       className={`p-5 rounded-2xl border shadow-lg transition-shadow ${isToday
-          ? "border-amber-500/50 bg-slate-800/90 shadow-amber-500/10 ring-2 ring-amber-500/30"
-          : "border-slate-700/50 bg-slate-900/80 shadow-black/20"
+        ? "border-amber-500/50 bg-slate-800/90 shadow-amber-500/10 ring-2 ring-amber-500/30"
+        : "border-slate-700/50 bg-slate-900/80 shadow-black/20"
         }`}
     >
       <div className="flex items-baseline justify-between mb-3">
-        <div className="font-bold text-white text-sm uppercase tracking-wide">
+        <div className="font-bold text-white text-sm uppercase tracking-wide flex items-center gap-2">
           {dateLabel}
+          {isXmas && <span className="text-xl" title="Christmas">🎄</span>}
         </div>
         {isToday && (
           <span className="ml-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500 text-slate-950">
@@ -308,7 +331,7 @@ function DayCard({
           </select>
         </Form>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mb-2">
         {MEMBERS.map((member) => (
           <AttendeeChip
             key={member}
@@ -318,8 +341,63 @@ function DayCard({
             fetcher={attendanceFetcher}
           />
         ))}
+        <ExtraChip dinnerId={dinner.id} extraGuests={dinner.extra_guests ?? 0} />
+      </div>
+      <div className="mt-2">
+        {!showNote ? (
+          <button
+            type="button"
+            onClick={() => setShowNote(true)}
+            className="text-xs text-slate-400 hover:text-slate-300"
+          >
+            {hasNote ? "Edit note" : "Add note"}
+          </button>
+        ) : (
+          <notesFetcher.Form method="post" className="block">
+            <input type="hidden" name="intent" value="setNotes" />
+            <input type="hidden" name="dinner_id" value={dinner.id} />
+            <textarea
+              name="notes"
+              rows={2}
+              defaultValue={dinner.notes ?? ""}
+              placeholder="Note..."
+              onBlur={(e) => e.currentTarget.form?.requestSubmit()}
+              className="w-full px-2 py-1 rounded-lg border border-slate-600 bg-slate-800 text-slate-100 text-xs placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500 resize-y"
+            />
+          </notesFetcher.Form>
+        )}
+        {hasNote && !showNote && (
+          <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">
+            {(dinner.notes ?? "").trim()}
+          </p>
+        )}
       </div>
     </div>
+  );
+}
+
+/** Cycles 0 → +1 → +2 → +3 → +4 → +5 → 0 */
+function ExtraChip({ dinnerId, extraGuests }: { dinnerId: number; extraGuests: number }) {
+  const fetcher = useFetcher<typeof action>();
+  const next = (extraGuests + 1) % 6;
+  const label = extraGuests === 0 ? "Extra" : `+${extraGuests}`;
+  const isSet = extraGuests > 0;
+  return (
+    <fetcher.Form method="post" className="inline">
+      <input type="hidden" name="intent" value="setExtraGuests" />
+      <input type="hidden" name="dinner_id" value={dinnerId} />
+      <input type="hidden" name="extra_guests" value={next} />
+      <button
+        type="submit"
+        disabled={fetcher.state !== "idle"}
+        className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${isSet
+            ? "bg-amber-500 text-slate-950 hover:bg-amber-400"
+            : "bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-slate-300 border border-slate-600"
+          }`}
+      >
+        {label}
+      </button>
+    </fetcher.Form>
   );
 }
 
@@ -344,8 +422,8 @@ function AttendeeChip({
         type="submit"
         disabled={fetcher.state !== "idle"}
         className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${attending
-            ? "bg-amber-500 text-slate-950 hover:bg-amber-400 animate-attendee-in"
-            : "bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-slate-300 border border-slate-600"
+          ? "bg-amber-500 text-slate-950 hover:bg-amber-400 animate-attendee-in"
+          : "bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-slate-300 border border-slate-600"
           }`}
       >
         {member} {attending ? "✓" : "+"}

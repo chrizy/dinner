@@ -15,6 +15,8 @@ export interface Dinner {
   date: string;
   meal_id: number | null;
   created_at: string;
+  notes: string | null;
+  extra_guests: number;
   meal?: Meal | null;
   attendance: Member[];
 }

@@ -29,10 +29,11 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const db = getDb(env);
   const { token, expiresAt } = await createSession(db);
+  const secure = new URL(request.url).protocol === "https:";
   const headers = new Headers();
   headers.append(
     "Set-Cookie",
-    sessionCookieHeader(token, expiresAt, "set")
+    sessionCookieHeader(token, expiresAt, "set", { secure })
   );
   throw redirect("/", { headers });
 }
